@@ -2361,7 +2361,7 @@ sexp sexp_write_one (sexp ctx, sexp obj, sexp out, sexp_sint_t bound) {
     case SEXP_SYMBOL:
       str = sexp_lsymbol_data(obj);
       c = (sexp_lsymbol_length(obj) == 0 ||
-           (sexp_lsymbol_length(obj) == 1 && str[0] == '.') ||
+           (str[0] == '.' && (sexp_lsymbol_length(obj) == 1 || sexp_isdigit((unsigned char)str[1]))) ||
            sexp_isdigit((unsigned char)str[0]) ||
            (sexp_lsymbol_length(obj) > 1 &&
             ((str[0] == '+' || str[0] == '-')
