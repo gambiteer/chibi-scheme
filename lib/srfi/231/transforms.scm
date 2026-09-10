@@ -520,16 +520,27 @@
     (assert (and (mutable-array? destination) (array? source)
                  (= (interval-volume dest-domain)
                     (interval-volume source-domain))))
-    (let ((getter (array-getter source))
-          (setter (array-setter destination)))
-      (let lp ((source-ivc (interval-cursor source-domain))
-               (dest-ivc (interval-cursor dest-domain)))
-        (apply setter
-               (apply getter (interval-cursor-get source-ivc))
-               (interval-cursor-get dest-ivc))
-        (when (and (interval-cursor-next! source-ivc)
-                   (interval-cursor-next! dest-ivc))
-          (lp source-ivc dest-ivc)))
+    (let ((getter
+           (array-getter source))
+          (setter
+           (array-setter destination))
+          (reverse-source-index
+           (reverse (interval-lower-bounds->list source-domain)))
+          (reverse-dest-index
+           (reverse (interval-lower-bounds->list dest-domain)))
+          (source-ric
+           (make-reverse-index-cursor source-domain))
+          (dest-ric
+           (make-reverse-index-cursor dest-domain)))
+      (let lp ((rsi reverse-source-index)
+               (rdi reverse-dest-index))
+        (if (and rsi rdi)
+            (begin
+              (apply setter
+                     (apply getter (reverse rsi))
+                     (reverse rdi))
+              (lp (source-ric rsi)
+                  (dest-ric rdi)))))
       destination)))
 
 (define (reshape-without-copy array new-domain)
