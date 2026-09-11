@@ -179,12 +179,33 @@
 (define (interval-fold-right f kons knil iv)
   (if (interval-empty? iv)
       knil
-      (let ((ric (make-reverse-index-cursor iv)))
-        (let lp ((reverse-index (reverse (interval-lower-bounds->list iv))))
-          (if reverse-index
-              (let ((item (apply f (reverse reverse-index))))
-                (kons item (lp (ric reverse-index))))
-              knil)))))
+      (case (interval-dimension iv)
+        ((1)
+         (let ((end (interval-upper-bound iv 0)))
+           (let lp ((i (interval-lower-bound iv 0)))
+             (if (= i end)
+                 knil
+                 (let ((item (f i)))
+                   (kons item (lp (+ i 1))))))))
+        ((2)
+         (let ((end0 (interval-upper-bound iv 0))
+               (start1 (interval-lower-bound iv 1))
+               (end1 (interval-upper-bound iv 1)))
+           (let lp0 ((i (interval-lower-bound iv 0)))
+             (if (= i end0)
+                 knil
+                 (let lp1 ((j start1))
+                   (if (= j end1)
+                       (lp0 (+ i 1))
+                       (let ((item (f i j)))
+                         (kons item (lp1 (+ j 1))))))))))
+        (else
+         (let ((ric (make-reverse-index-cursor iv)))
+           (let lp ((reverse-index (reverse (interval-lower-bounds->list iv))))
+             (if reverse-index
+                 (let ((item (apply f (reverse reverse-index))))
+                   (kons item (lp (ric reverse-index))))
+                 knil)))))))
 
 (define (interval-for-each f iv)
   (interval-fold (lambda (acc . multi-index) (apply f multi-index)) #f iv)
