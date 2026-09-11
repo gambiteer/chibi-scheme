@@ -514,35 +514,6 @@
        (array-domain source))
       destination)))
 
-(define (array-assign/reshape! destination source)
-  (let ((dest-domain (array-domain destination))
-        (source-domain (array-domain source)))
-    (assert (and (mutable-array? destination) (array? source)
-                 (= (interval-volume dest-domain)
-                    (interval-volume source-domain))))
-    (let ((getter
-           (array-getter source))
-          (setter
-           (array-setter destination))
-          (reverse-source-index
-           (reverse (interval-lower-bounds->list source-domain)))
-          (reverse-dest-index
-           (reverse (interval-lower-bounds->list dest-domain)))
-          (source-ric
-           (make-reverse-index-cursor source-domain))
-          (dest-ric
-           (make-reverse-index-cursor dest-domain)))
-      (let lp ((rsi reverse-source-index)
-               (rdi reverse-dest-index))
-        (if (and rsi rdi)
-            (begin
-              (apply setter
-                     (apply getter (reverse rsi))
-                     (reverse rdi))
-              (lp (source-ric rsi)
-                  (dest-ric rdi)))))
-      destination)))
-
 (define (reshape-without-copy array new-domain)
   (let* ((domain (array-domain array))
          (orig-indexer (array-indexer array))
@@ -594,12 +565,9 @@
     (cond
      ((reshape-without-copy array new-domain))
      (copy-on-failure?
-      (let ((res (make-specialized-array/default
-                  new-domain
-                  (array-storage-class array)
-                  (array-safe? array))))
-        (array-assign/reshape! res array)
-        res))
+      ;; you can always reshape a newly allocated array
+      ;; array is specialized, so array-copy! is safe
+      (reshape-without-copy (array-copy! array) new-domain))
      (else
       (error "can't reshape" array new-domain)))))
 
